@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المحل والخزائن والعملاء الشامل</title>
+    <!-- استدعاء خط Tajawal لراحة العين ووضوح الأرقام -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- مكتبة قراءة ملفات الإكسيل Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --whatsapp: #25d366;
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --border: #cbd5e1;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; transition: all 0.2s ease; }
+        body { background: var(--bg); color: var(--text); font-size: 13.5px; direction: rtl; }
+        
+        .app-wrapper { display: flex; min-height: 100vh; display: none; }
+
+        /* شاشة تسجيل الدخول الاحترافية */
+        #loginOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .login-card {
+            background: #ffffff;
+            padding: 35px;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+            text-align: center;
+            border-top: 5px solid var(--primary-light);
+        }
+        .login-card h2 { color: var(--primary); margin-bottom: 20px; font-size: 22px; font-weight: 700; }
+        .login-card .form-group { margin-bottom: 16px; text-align: right; }
+        .login-card label { font-size: 13.5px; font-weight: 700; color: #334155; margin-bottom: 6px; display: block; }
+        .login-card input { width: 100%; padding: 11px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #f8fafc; font-family: 'Tajawal', sans-serif; }
+        .login-card input:focus { border-color: var(--primary-light); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .login-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; font-family: 'Tajawal', sans-serif; }
+        .login-btn:hover { background: var(--primary-light); }
+        .login-error { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; font-weight: bold; }
+
+        /* القائمة الجانبية (Sidebar) */
+        aside {
+            width: 260px;
+            background: var(--sidebar-bg);
+            color: #94a3b8;
+            position: fixed;
+            top: 0; right: 0;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-brand {
+            padding: 20px;
+            font-size: 16px;
+            font-weight: 900;
+            color: #ffffff;
+            background: #020617;
+            text-align: center;
+            border-bottom: 1px solid #1e293b;
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 15px 10px;
+        }
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+        .sidebar-menu button {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            padding: 12px 15px;
+            text-align: right;
+            font-size: 13.5px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Tajawal', sans-serif;
+        }
+        .sidebar-menu button:hover {
+            background: var(--sidebar-hover);
+            color: #ffffff;
+        }
+        .sidebar-menu button.active {
+            background: #0d9488;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .main-content {
+            margin-right: 260px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        header {
+            background: var(--card-bg);
+            padding: 12px 25px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+        header h2 { color: var(--primary); font-size: 18px; font-weight: 800; }
+        .header-user-info { display: flex; align-items: center; gap: 15px; }
+
+        .content-body { padding: 20px; }
+        .tab-panel { display: none; background: var(--card-bg); padding: 22px; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); animation: fadeIn 0.25s ease-in-out; }
+        .tab-panel.active { display: block !important; }
+        .tab-panel h2 { font-size: 17px; font-weight: 800; color: var(--primary); margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .table-container { overflow-x: auto; background: var(--card-bg); border-radius: var(--radius); padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        .main-dashboard-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; font-weight: 700; white-space: nowrap; direction: rtl; }
+        .main-dashboard-table th, .main-dashboard-table td { border: 1px solid #cbd5e1; padding: 10px 8px; }
+        
+        .th-cash-total { background-color: #1e3a8a; color: white; }
+        .th-info { background-color: #0f172a; color: white; }
+        .th-carry { background-color: #1e3a8a; color: white; }
+        .th-dep-max { background-color: #1e3a8a; color: white; }
+        .th-dep-sum { background-color: #1e3a8a; color: white; }
+        .th-dep-rem { background-color: #15803d; color: white; }
+        .th-actual-box { background-color: #451a03; color: white; }
+        .th-draw-max { background-color: #1e3a8a; color: white; }
+        .th-draw-sum { background-color: #1e3a8a; color: white; }
+        .th-draw-rem { background-color: #15803d; color: white; }
+
+        .tr-total { background-color: #0f172a; color: white; font-size: 13px; }
+        .td-cash-val { background-color: #e0e7ff; color: #1e1b4b; font-size: 15px; font-weight: 800; }
+
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 14px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 700; font-size: 13px; color: #334155; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13.5px; background: #f8fafc; font-family: 'Tajawal', sans-serif; color: var(--text); }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary-light); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+
+        .btn { padding: 10px 16px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-family: 'Tajawal', sans-serif; }
+        .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+        .btn-success { background: var(--success); }
+        .btn-whatsapp { background: var(--whatsapp); color: white; }
+        .btn-danger { background: var(--danger); padding: 5px 10px; font-size: 12px; }
+        .btn-warning { background: var(--warning); padding: 5px 10px; font-size: 12px; color: #fff; }
+
+        .box-res { background: #f8fafc; padding: 15px; border: 1px dashed #94a3b8; font-weight: 700; margin-top: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; }
+
+        .wallet-summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; margin: 15px 0; }
+        .ws-card { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; overflow: hidden; }
+        .ws-card::before { content: ''; position: absolute; top: 0; right: 0; width: 5px; height: 100%; background: var(--primary-light); }
+        .ws-card.active-balance::before { background: var(--warning); }
+        .ws-card h4 { font-size: 14.5px; font-weight: 800; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .ws-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 700; color: #475569; }
+        .ws-val { font-weight: 800; color: var(--primary); }
+        .ws-val.success { color: var(--success); }
+        .ws-val.danger { color: var(--danger); }
+        .ws-val.warning { color: var(--warning); }
+
+        .analytics-report-box { display: none; background: #ffffff; border: 2px solid var(--primary-light); border-radius: 10px; padding: 20px; margin-top: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .analytics-report-box h3 { color: var(--primary); font-size: 17px; font-weight: 800; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
+        .excel-summary-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; direction: rtl; font-size: 13px; }
+        .excel-summary-table th, .excel-summary-table td { border: 1px solid #94a3b8; padding: 9px 12px; text-align: center; }
+        .excel-summary-table th { background-color: #1e3a8a; color: white; font-weight: 700; }
+        .excel-summary-table td { background-color: #f8fafc; font-weight: 700; color: #0f172a; }
+
+        table.data-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        table.data-table th, table.data-table td { border-bottom: 1px solid var(--border); padding: 11px 10px; text-align: right; font-size: 13.5px; }
+        table.data-table th { background: #f8fafc; font-weight: 800; color: #334155; }
+        
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; color: white; font-weight: 700; }
+        .badge-success { background-color: var(--success); }
+        .badge-danger { background-color: var(--danger); }
+        .badge-warning { background-color: var(--warning); }
+
+        @media print {
+            body * { visibility: hidden; }
+            #tabAnalytics, #tabAnalytics * { visibility: visible; }
+            #tabAnalytics { position: absolute; left: 0; top: 0; width: 100%; padding: 0; background: white; }
+            aside, header, .table-container, .form-row, .btn, .analytics-report-box { display: none !important; }
+            .data-table th:last-child, .data-table td:last-child { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2>تسجيل الدخول للنظام</h2>
+            <div class="form-group">
+                <label>اسم المستخدم (User)</label>
+                <input type="text" id="loginUser" placeholder="أدخل اسم المستخدم">
+            </div>
+            <div class="form-group">
+                <label>كلمة المرور (Password)</label>
+                <input type="password" id="loginPass" placeholder="أدخل كلمة المرور" onkeydown="if(event.key === 'Enter') checkLogin()">
+            </div>
+            <button type="button" class="login-btn" onclick="checkLogin()">دخول للنظام</button>
+            <div id="loginError" class="login-error">اسم المستخدم أو كلمة المرور غير صحيحة!</div>
+        </div>
+    </div>
+
+    <!-- الغلاف الرئيسي للتصميم بنمط القائمة الجانبية -->
+    <div class="app-wrapper" id="mainAppContainer">
+        
+        <!-- القائمة الجانبية (Sidebar) -->
+        <aside>
+            <div class="sidebar-brand">
+                نظام عماد العجايبى
+            </div>
+            <ul class="sidebar-menu">
+                <li><button type="button" class="active" onclick="showTab('tabDashboard', this)">📊 لوحة القيادة الشاملة</button></li>
+                <li><button type="button" onclick="showTab('tab1', this)">💵 الخزنة النقدية (الدرج)</button></li>
+                <li><button type="button" onclick="showTab('tabExpenses', this)">💸 المصاريف النقدية</button></li>
+                <li><button type="button" onclick="showTab('tab2', this)">📱 المحافظ الرقمية وانستا باي</button></li>
+                <li><button type="button" onclick="showTab('tabClients', this)">💬 مديونيات العملاء والواتساب</button></li>
+                <li><button type="button" onclick="showTab('tabAnalytics', this)">📈 التقارير والتحليل الإحصائي</button></li>
+                <li><button type="button" onclick="showTab('tabUsers', this)">👥 إدارة المستخدمين (إضافة يوزر)</button></li>
+                <li><button type="button" onclick="showTab('tabChangePass', this)">🔑 تغيير كلمة المرور</button></li>
+            </ul>
+        </aside>
+
+        <!-- منطقة المحتوى الرئيسي -->
+        <div class="main-content">
+            <!-- الترويسة العلوية -->
+            <header>
+                <div>
+                    <h2>محلات عماد العجايبى لقطع غيار الموبايل - سوهاج</h2>
+                </div>
+                <div class="header-user-info">
+                    <span style="font-weight:800; font-size:13.5px; color:#1e3a8a; background:#e0e7ff; padding:6px 12px; border-radius:8px;" id="loggedUserDisplay">المستخدم: tomas</span>
+                    <span style="font-weight:800; font-size:13.5px; color:#1e3a8a; background:#e0e7ff; padding:6px 12px; border-radius:8px;" id="monthLabel"></span>
+                    <button type="button" class="btn btn-danger" style="padding:6px 12px; font-size:12.5px;" onclick="logout()">تسجيل خروج</button>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- لوحة القيادة والجدول الشامل للواجهة الرئيسية -->
+                <div id="tabDashboard" class="tab-panel active">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                        <h2>نظرة عامة على الخزائن والحسابات</h2>
+                        <!-- زر تعديل المرحل يدوياً لمنع حدوث الفروق -->
+                        <button type="button" class="btn btn-warning" onclick="editCarryOverManual()" style="font-size:13px; padding:8px 14px;">✏️ تعديل الرصيد المرحل من الشهر السابق يدوياً</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="main-dashboard-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-cash-total">إجمالي المبلغ الفعلي بالخزنة (بعد المصاريف)</th>
+                                    <th class="th-info">الخط / الحساب</th>
+                                    <th class="th-info">اسم المالك</th>
+                                    <th class="th-carry">المرحل من الشهر السابق</th>
+                                    <th class="th-dep-max">الحد الأقصى للإيداع</th>
+                                    <th class="th-dep-sum">إجمالي الإيداع الحالي</th>
+                                    <th class="th-dep-rem">المتبقي في الإيداع</th>
+                                    <th class="th-actual-box">المبلغ الموجود فعلي بالخزنة</th>
+                                    <th class="th-draw-max">الحد الأقصى للسحب</th>
+                                    <th class="th-draw-sum">إجمالي السحب</th>
+                                    <th class="th-draw-rem">المتبقي في السحب</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTbody"></tbody>
+                            <tfoot>
+                                <tr class="tr-total" id="dashboardFooter"></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- التاب الأول: الخزنة النقدية -->
+                <div id="tab1" class="tab-panel">
+                    <h2>تقفيل الخزنة النقدية (العد الفعلي مقابل السيستم)</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>التاريخ</label>
+                            <input type="date" id="cDate">
+                        </div>
+                        <div class="form-group">
+                            <label>العد الفعلي في الدرج (ج.م)</label>
+                            <input type="number" step="0.01" id="cActual" placeholder="0.00" oninput="calcCash()">
+                        </div>
+                        <div class="form-group">
+                            <label>مبيعات السيستم النقدي (ج.م)</label>
+                            <input type="number" step="0.01" id="cSystem" placeholder="0.00" oninput="calcCash()">
+                        </div>
+                    </div>
+                    <div class="box-res" id="cResult">
+                        <span>حالة الدرج النقدي:</span>
+                        <span>أدخل القيم للحساب...</span>
+                    </div>
+                    <br>
+                    <button type="button" class="btn btn-success" onclick="saveCash()">حفظ وتحديث إجمالي الخزنة النقدية</button>
+                </div>
+
+                <!-- التاب الثاني: المصاريف النقدية -->
+                <div id="tabExpenses" class="tab-panel">
+                    <h2>إدارة وتسجيل المصاريف النقدية (تخصم تلقائياً من إجمالي الدرج)</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>التاريخ</label>
+                            <input type="date" id="expDate">
+                        </div>
+                        <div class="form-group">
+                            <label>المبلغ المنصرف (ج.م)</label>
+                            <input type="number" step="0.01" id="expAmt" placeholder="0.00">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>الملاحظة / البيان (طلع ليه ولمين؟)</label>
+                            <input type="text" id="expDesc" placeholder="مثال: شراء أدوات نظافة - لعماد">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="addExpense()">➕ صرف المبلغ وخصمه من الدرج</button>
+
+                    <div class="box-res" style="margin-top: 16px;">
+                        <span>إجمالي المصاريف النقدية المسجلة:</span>
+                        <span id="totalExpensesDisplay" style="color: var(--danger); font-size: 16px; font-weight: 800;">0.00 ج.م</span>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المبلغ</th>
+                                <th>الملاحظة / البيان</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expensesTableBody">
+                            <tr><td colspan="4" style="text-align:center; color:#64748b;">لا توجد مصاريف مسجلة حتى الآن</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- التاب الثالث: المحافظ الرقمية وانستا باي -->
+                <div id="tab2" class="tab-panel">
+                    <h2>إدخال ومطابقة ومتابعة المحفظة أو حساب انستا باي المختار</h2>
+                    
+                    <div class="wallet-summary-container">
+                        <div class="ws-card">
+                            <h4>📅 إجمالي حركات ورسائل اليوم للخط/الحساب المحدد</h4>
+                            <div class="ws-row">
+                                <span>إيداعات اليوم المسجلة:</span>
+                                <span id="sumDayDep" class="ws-val success">0.00 ج.م</span>
+                            </div>
+                            <div class="ws-row">
+                                <span>سحوبات اليوم المسجلة:</span>
+                                <span id="sumDayDraw" class="ws-val danger">0.00 ج.م</span>
+                            </div>
+                            <div class="ws-row" style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 6px;">
+                                <span>صافي حركة اليوم:</span>
+                                <span id="sumDayNet" class="ws-val">0.00 ج.م</span>
+                            </div>
+                        </div>
+
+                        <div class="ws-card active-balance">
+                            <h4>📱 الرصيد الفعلي المستمر (للمطابقة مع التطبيق)</h4>
+                            <div class="ws-row">
+                                <span>المرحل من الشهر السابق:</span>
+                                <span id="sumCarryVal" class="ws-val">0.00 ج.م</span>
+                            </div>
+                            <div class="ws-row">
+                                <span>إجمالي إيداعات الشهر:</span>
+                                <span id="sumMonthDep" class="ws-val success">0.00 ج.م</span>
+                            </div>
+                            <div class="ws-row">
+                                <span>إجمالي سحوبات الشهر:</span>
+                                <span id="sumMonthDraw" class="ws-val danger">0.00 ج.م</span>
+                            </div>
+                            <div class="ws-row" style="border-top: 2px dashed var(--warning); padding-top: 6px; margin-top: 6px; font-weight: bold;">
+                                <span>الرصيد الفعلي الكلي المستمر:</span>
+                                <span id="sumActualBal" class="ws-val warning" style="font-size: 16px;">0.00 ج.م</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 15px;">
+                        <div class="form-group">
+                            <label>التاريخ</label>
+                            <input type="date" id="mDate">
+                        </div>
+                        <div class="form-group">
+                            <label>اختر الخزنة / الخط / انستا باي</label>
+                            <select id="mWallet" onchange="renderMsgs()">
+                                <option value="كاش 118">كاش 118</option>
+                                <option value="كاش 928">كاش 928</option>
+                                <option value="كاش 101">كاش 101</option>
+                                <option value="انستا باي">انستا باي</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>نوع الحركة</label>
+                            <select id="mType">
+                                <option value="إيداع">إيداع</option>
+                                <option value="سحب">سحب</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>المبلغ (ج.م)</label>
+                            <input type="number" step="0.01" id="mAmt" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>اسم المرسل / البيان</label>
+                            <input type="text" id="mDesc" placeholder="مثال: تحويل من فلان">
+                        </div>
+                    </div>
+                    <button type="button" class="btn" onclick="addMsg()">إضافة الحركة لحساب <span id="selectedWalletText">كاش 118</span></button>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>المحفظة / الحساب</th>
+                                <th>نوع الحركة</th>
+                                <th>المبلغ</th>
+                                <th>البيان</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="msgTable">
+                            <tr><td colspan="5" style="text-align:center; color:#64748b;">لا توجد رسائل مدخلة لهذه الخزنة</td></tr>
+                        </tbody>
+                    </table>
+                    <br>
+                    <button type="button" class="btn btn-success" onclick="saveMobile()">حفظ وتحديث تقفيل المحفظة/الحساب المحدد</button>
+                </div>
+
+                <!-- التاب الرابع: المديونيات وإرسال الواتساب -->
+                <div id="tabClients" class="tab-panel">
+                    <h2>استيراد مديونيات العملاء من الإكسيل وإرسال كشوفات الواتساب</h2>
+                    <div class="form-row" style="background:#f8fafc; padding:16px; border-radius:var(--radius); border:1px solid var(--border);">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>📁 اختر ملف إكسيل (Excel / CSV) للعملاء</label>
+                            <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" onchange="importExcel(event)" style="background:white;">
+                            <small style="color:#64748b; display:block; margin-top:5px;">يجب أن يحتوي الملف على الأعمدة بالترتيب: <b>اسم العميل، رقم الموبايل، المديونية، السداد، الباقي</b></small>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0; display:flex; align-items:flex-end;">
+                            <button type="button" class="btn btn-whatsapp" onclick="startQueueWhatsApp()" style="width:100%; justify-content:center; padding: 11px;">💬 بدء إرسال الواتساب المتتابع للعملاء</button>
+                        </div>
+                    </div>
+
+                    <div id="whatsappQueueBox" style="display:none; background:#e0e7ff; border:2px solid var(--primary-light); padding:15px; border-radius:8px; margin-top:15px; text-align:center;">
+                        <h3 style="color:var(--primary); margin-bottom:8px;" id="queueTitle">لوحة الإرسال التلقائي للعملاء بالترتيب</h3>
+                        <p id="queueStatusText" style="font-weight:bold; margin-bottom:12px; color:#334155; font-size:15px;"></p>
+                        <div style="display:flex; justify-content:center; gap:10px;">
+                            <button type="button" id="nextQueueBtn" class="btn btn-whatsapp" onclick="nextQueueWhatsApp()" style="font-size: 15px; padding: 12px 24px;">➡️ فتح واتساب للعميل التالي</button>
+                            <button type="button" class="btn btn-danger" onclick="stopQueueWhatsApp()">❌ إنهاء / إيقاف</button>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 14px;">
+                        <div class="form-group" style="grid-template-columns: 1fr;">
+                            <label>📝 نموذج رسالة الواتساب التلقائية (تعرض المديونية فقط):</label>
+                            <textarea id="waTemplate" rows="4">عميلنا العزيز {name}، نذكركم بوجود مبلغ مديونية مستحق عليكم قدره {remaining} ج.م.، برجاء سرعة السداد.
+
+مع الشكر
+مع تحيات محلات عماد العجايبى لقطع الغيار الداخلى للموبايل فرع سوهاج</textarea>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+                        <span id="clientCountInfo" style="font-weight:bold; color:var(--primary);">عدد العملاء المستوردين: 0</span>
+                        <div>
+                            <button type="button" class="btn" style="background:#475569; padding:6px 12px; font-size:12px;" onclick="toggleSelectAll(true)">تحديد الكل</button>
+                            <button type="button" class="btn" style="background:#475569; padding:6px 12px; font-size:12px;" onclick="toggleSelectAll(false)">إلغاء التحديد</button>
+                        </div>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"><input type="checkbox" id="masterCheckbox" onchange="toggleSelectAll(this.checked)"></th>
+                                <th>اسم العميل</th>
+                                <th>رقم الموبايل</th>
+                                <th>إجمالي المديونية</th>
+                                <th>المدفوع (سدد)</th>
+                                <th>الباقي المستحق</th>
+                                <th>إجراء واتساب</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                            <tr><td colspan="7" style="text-align:center; color:#64748b;">لا توجد بيانات عملاء مسجلة. قم برفع ملف إكسيل بالأعلى.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- التاب الخامس: التقارير والتحليل الإحصائي المتقدم -->
+                <div id="tabAnalytics" class="tab-panel">
+                    <h2>مركز التقارير والتحليل الإحصائي المتقدم (بحث يومي أو أجندة + ديناميكي بالكامل)</h2>
+                    <div class="form-row" style="background:#f8fafc; padding:16px; border-radius:var(--radius); border:1px solid var(--border);">
+                        <div class="form-group">
+                            <label>نوع التقرير والبحث</label>
+                            <select id="reportQueryType" onchange="toggleReportQueryType()">
+                                <option value="range">بحث بفترة (من تاريخ ... إلى تاريخ)</option>
+                                <option value="singleDay">بحث بيوم واحد محدد</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="groupFromDate">
+                            <label>من تاريخ (بداية الأجندة)</label>
+                            <input type="date" id="repFromDate">
+                        </div>
+                        <div class="form-group" id="groupToDate">
+                            <label>إلى تاريخ (نهاية الأجندة)</label>
+                            <input type="date" id="repToDate">
+                        </div>
+                        <div class="form-group" id="groupSingleDate" style="display:none;">
+                            <label>اختر اليوم المحدد للبحث</label>
+                            <input type="date" id="repSingleDate">
+                        </div>
+                        <div class="form-group">
+                            <label>تصفية حسب القسم / الخزنة / انستا باي</label>
+                            <select id="repWallet" onchange="adjustReportViewOptions()">
+                                <option value="ALL">جميع الأقسام والخزائن (شامل)</option>
+                                <option value="خزنة نقدية">الخزنة النقدية (الدرج)</option>
+                                <option value="مصروف نقدي">المصاريف النقدية</option>
+                                <option value="كاش 118">كاش 118</option>
+                                <option value="كاش 928">كاش 928</option>
+                                <option value="كاش 101">كاش 101</option>
+                                <option value="انستا باي">انستا باي</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>نمط عرض التقرير</label>
+                            <select id="repViewMode">
+                                <option value="detailed">عرض تفصيلي (السجلات والرسائل بالكامل)</option>
+                                <option value="summary">عرض إجمالي (ملخص الأرقام فقط)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display:flex; align-items:flex-end;">
+                            <button type="button" class="btn btn-success" style="width:100%; justify-content:center;" onclick="generateAdvancedReport()">📊 عرض التقرير والتحليل الإحصائي</button>
+                        </div>
+                    </div>
+
+                    <div class="analytics-report-box" id="analyticsReportBox">
+                        <h3>
+                            <span id="reportTitleText">📈 نتيجة التحليل الإحصائي للفترة المحددة</span>
+                            <div style="display:flex; gap:8px;">
+                                <button type="button" class="btn btn-whatsapp" style="padding:5px 10px; font-size:12px;" onclick="generateDailyFollowUpReport()">📱 تقرير حركة اليوم رسالة رسالة للمتابعة</button>
+                                <button type="button" class="btn" style="padding:5px 10px; font-size:12px; background:#475569;" onclick="window.print()">🖨️ طباعة التقرير</button>
+                            </div>
+                        </h3>
+                        <div id="excelSummaryContainer"></div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin: 18px 0; flex-wrap:wrap;">
+                        <button type="button" class="btn" style="background:#15803d;" onclick="exportFilteredExcel()">📥 تصدير السجلات (Excel)</button>
+                        <button type="button" class="btn" style="background:#0d9488;" onclick="exportJSONBackup()">💾 نسخة احتياطية (JSON)</button>
+                        <button type="button" class="btn" style="background:#7c3aed;" onclick="importJSONBackup()">📥 استعادة داتا (JSON)</button>
+                    </div>
+
+                    <div id="tableWrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>الخزنة / القسم</th>
+                                    <th>التفاصيل والملاحظات</th>
+                                    <th>الحالة / المبلغ</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dbTable">
+                                <tr><td colspan="5" style="text-align:center; color:#64748b;">حدد فترة أو يوم البحث واضغط على "عرض التقرير والتحليل الإحصائي"</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- التاب الجديد: إدارة المستخدمين -->
+                <div id="tabUsers" class="tab-panel">
+                    <h2>👥 إدارة المستخدمين وإنشاء حسابات للغير</h2>
+                    <div class="form-row" style="background:#f8fafc; padding:16px; border-radius:var(--radius); border:1px solid var(--border);">
+                        <div class="form-group">
+                            <label>اسم المستخدم الجديد (Username)</label>
+                            <input type="text" id="newUsername" placeholder="مثال: ahmed">
+                        </div>
+                        <div class="form-group">
+                            <label>كلمة المرور (Password)</label>
+                            <input type="password" id="newUserPass" placeholder="أدخل كلمة المرور">
+                        </div>
+                        <div class="form-group">
+                            <label>الصلاحية / الدور</label>
+                            <select id="newUserRole">
+                                <option value="أدمن (مدير)">أدمن (مدير)</option>
+                                <option value="مستخدم عادي">مستخدم عادي</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display:flex; align-items:flex-end;">
+                            <button type="button" class="btn btn-success" style="width:100%; justify-content:center;" onclick="addNewUser()">➕ إنشاء المستخدم</button>
+                        </div>
+                    </div>
+
+                    <table class="data-table" style="margin-top:20px;">
+                        <thead>
+                            <tr>
+                                <th>اسم المستخدم</th>
+                                <th>الصلاحية</th>
+                                <th>تاريخ الإنشـاء</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- التاب الجديد: تغيير كلمة المرور -->
+                <div id="tabChangePass" class="tab-panel">
+                    <h2>🔑 تغيير كلمة المرور للمستخدم الحالي</h2>
+                    <div style="max-width: 500px; background:#f8fafc; padding:20px; border-radius:var(--radius); border:1px solid var(--border);">
+                        <div class="form-group">
+                            <label>كلمة المرور الحالية</label>
+                            <input type="password" id="currPassInput" placeholder="أدخل كلمة المرور الحالية">
+                        </div>
+                        <div class="form-group">
+                            <label>كلمة المرور الجديدة</label>
+                            <input type="password" id="newPassInput" placeholder="أدخل كلمة المرور الجديدة">
+                        </div>
+                        <div class="form-group">
+                            <label>تأكيد كلمة المرور الجديدة</label>
+                            <input type="password" id="confirmPassInput" placeholder="أعد كتابة كلمة المرور الجديدة">
+                        </div>
+                        <br>
+                        <button type="button" class="btn btn-success" style="width:100%; justify-content:center; padding:11px;" onclick="changeCurrentPassword()">💾 حفظ كلمة المرور الجديدة</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+    let systemUsers = JSON.parse(localStorage.getItem('store_users_v7')) || [
+        { username: 'tomas', pass: '1234', role: 'أدمن (مدير)', created: '2026-10-01' }
+    ];
+
+    let currentLoggedInUser = sessionStorage.getItem('loggedUser') || 'tomas';
+
+    function checkLogin() {
+        let u = document.getElementById('loginUser').value.trim();
+        let p = document.getElementById('loginPass').value.trim();
+        let err = document.getElementById('loginError');
+
+        let foundUser = systemUsers.find(user => user.username === u && user.pass === p);
+
+        if (foundUser) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainAppContainer').style.display = 'flex';
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('loggedUser', u);
+            currentLoggedInUser = u;
+            document.getElementById('loggedUserDisplay').innerText = `المستخدم: ${u}`;
+            initApp();
+        } else {
+            err.style.display = 'block';
+        }
+    }
+
+    function logout() {
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('loggedUser');
+        location.reload();
+    }
+
+    window.onload = function() {
+        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainAppContainer').style.display = 'flex';
+            document.getElementById('loggedUserDisplay').innerText = `المستخدم: ${currentLoggedInUser}`;
+            initApp();
+        }
+    };
+
+    function initApp() {
+        const today = new Date().toISOString().split('T')[0];
+        const firstDayOfMonth = today.slice(0, 8) + '01';
+        
+        document.getElementById('cDate').value = today;
+        document.getElementById('mDate').value = today;
+        document.getElementById('expDate').value = today;
+        
+        document.getElementById('repFromDate').value = firstDayOfMonth;
+        document.getElementById('repToDate').value = today;
+        document.getElementById('repSingleDate').value = today;
+        
+        document.getElementById('monthLabel').innerText = `اليوم: ${today}`;
+
+        renderExpensesUI();
+        renderDashboardTable();
+        generateAdvancedReport();
+        renderClientsTable();
+        renderWalletSummary();
+        renderUsersTable();
+    }
+
+    // تهيئة الخزائن بعد التعديل الأخير: جعل انستا باي بدون حدود لعمود الإيداع والسحب
+    const walletsConfig = [
+        { id: 'كاش 118', owner: 'الخط الرئيسي', maxDep: 200000, maxDraw: 200000 },
+        { id: 'كاش 928', owner: 'كيرلس ممدوح', maxDep: 60000, maxDraw: 60000 },
+        { id: 'كاش 101', owner: 'روماني سمير', maxDep: 200000, maxDraw: 200000 },
+        { id: 'انستا باي', owner: 'حساب البنك / الانستاباي', maxDep: Infinity, maxDraw: Infinity }
+    ];
+
+    let tempMsgs = [];
+    let clientsList = JSON.parse(localStorage.getItem('store_clients_v7')) || [];
+    let db = JSON.parse(localStorage.getItem('store_records_v7')) || [];
+    let expensesList = JSON.parse(localStorage.getItem('store_expenses_v7')) || [];
+    let carryOverStore = JSON.parse(localStorage.getItem('store_carry_v7')) || {};
+    let actualBoxStore = JSON.parse(localStorage.getItem('store_box_v7')) || {};
+    let cashDrawerTotal = parseFloat(localStorage.getItem('store_cash_drawer_v7')) || 0;
+
+    const currentMonthKey = new Date().toISOString().slice(0, 7);
+
+    function getMonthlySum(walletId, opType, monthKey = currentMonthKey) {
+        return db.filter(r => r.date && r.date.startsWith(monthKey) && r.wName === walletId && r.opType === opType)
+                 .reduce((sum, r) => sum + (r.amt || 0), 0);
+    }
+
+    // حساب أو إرجاع "المرحل من الشهر السابق" (تلقائياً أو يدوي المُنظَّم)
+    function getCarryOver(walletId, monthKey = currentMonthKey) {
+        if (carryOverStore[monthKey] && carryOverStore[monthKey][walletId] !== undefined) {
+            return carryOverStore[monthKey][walletId];
+        }
+        return 0;
+    }
+
+    // دالة التعديل اليدوي السريع للمرحل لتلافي أي فرق من الشهور السابقة
+    function editCarryOverManual() {
+        let selectedW = prompt("اختر اسم الحساب المراد تعديل رصيده المرحل:\n(كاش 118 , كاش 928 , كاش 101 , انستا باي)", "كاش 118");
+        if (!selectedW) return;
+        
+        let found = walletsConfig.find(w => w.id === selectedW.trim());
+        if (!found) return alert("اسم الخزنة أو الحساب غير صحيح!");
+
+        let currentVal = getCarryOver(found.id, currentMonthKey);
+        let newVal = prompt(`أدخل الرصيد المرحل من الشهر السابق لـ (${found.id}):`, currentVal);
+        
+        if (newVal !== null && !isNaN(parseFloat(newVal))) {
+            if (!carryOverStore[currentMonthKey]) carryOverStore[currentMonthKey] = {};
+            carryOverStore[currentMonthKey][found.id] = parseFloat(newVal);
+            localStorage.setItem('store_carry_v7', JSON.stringify(carryOverStore));
+            renderDashboardTable();
+            renderWalletSummary();
+            alert(`تم تعديل الرصيد المرحل لـ ${found.id} بنجاح إلى ${parseFloat(newVal).toLocaleString()} ج.م`);
+        }
+    }
+
+    function getTotalExpenses() {
+        return expensesList.reduce((sum, e) => sum + (e.amt || 0), 0);
+    }
+
+    function renderDashboardTable() {
+        const tbody = document.getElementById('dashboardTbody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        let totalExpenses = getTotalExpenses();
+        let netCashDrawer = cashDrawerTotal - totalExpenses;
+
+        let tCarry = 0, tMaxDep = 0, tDepSum = 0, tDepRem = 0;
+        let tBox = 0, tMaxDraw = 0, tDrawSum = 0, tDrawRem = 0;
+
+        walletsConfig.forEach((w, index) => {
+            let carry = getCarryOver(w.id);
+            let depSum = getMonthlySum(w.id, 'إيداع');
+            let drawSum = getMonthlySum(w.id, 'سحب');
+            
+            let isInfinity = (w.maxDep === Infinity);
+            let depRemStr = isInfinity ? 'غير محدود' : (w.maxDep - depSum).toLocaleString();
+            let drawRemStr = isInfinity ? 'غير محدود' : (w.maxDraw - drawSum).toLocaleString();
+            let maxDepStr = isInfinity ? 'غير محدود' : w.maxDep.toLocaleString();
+            let maxDrawStr = isInfinity ? 'غير محدود' : w.maxDraw.toLocaleString();
+
+            let actualBox = actualBoxStore[w.id] !== undefined ? actualBoxStore[w.id] : 0;
+
+            tCarry += carry;
+            if (!isInfinity) tMaxDep += w.maxDep;
+            tDepSum += depSum;
+            if (!isInfinity) tDepRem += (w.maxDep - depSum);
+            tBox += actualBox;
+            if (!isInfinity) tMaxDraw += w.maxDraw;
+            tDrawSum += drawSum;
+            if (!isInfinity) tDrawRem += (w.maxDraw - drawSum);
+
+            let rowHtml = `<tr>`;
+            if (index === 0) {
+                rowHtml += `<td rowspan="${walletsConfig.length}" class="td-cash-val" style="color: ${netCashDrawer < 0 ? '#dc2626' : '#1e1b4b'}">${netCashDrawer.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ج.م</td>`;
+            }
+            rowHtml += `
+                <td><b>${w.id}</b></td>
+                <td>${w.owner}</td>
+                <td style="color:#1e3a8a; font-weight:bold;">${carry.toLocaleString()}</td>
+                <td>${maxDepStr}</td>
+                <td>${depSum.toLocaleString()}</td>
+                <td style="color:#15803d;">${depRemStr}</td>
+                <td style="background:#fef2f2;">${actualBox.toLocaleString()}</td>
+                <td>${maxDrawStr}</td>
+                <td>${drawSum.toLocaleString()}</td>
+                <td style="color:#15803d;">${drawRemStr}</td>
+            </tr>`;
+            tbody.innerHTML += rowHtml;
+        });
+
+        document.getElementById('dashboardFooter').innerHTML = `
+            <td colspan="3">الإجمالي</td>
+            <td>${tCarry.toLocaleString()}</td>
+            <td>${tMaxDep.toLocaleString()}</td>
+            <td>${tDepSum.toLocaleString()}</td>
+            <td>${tDepRem.toLocaleString()}</td>
+            <td>${tBox.toLocaleString()}</td>
+            <td>${tMaxDraw.toLocaleString()}</td>
+            <td>${tDrawSum.toLocaleString()}</td>
+            <td>${tDrawRem.toLocaleString()}</td>
+        `;
+    }
+
+    function showTab(tabId, btn) {
+        let panels = document.querySelectorAll('.tab-panel');
+        panels.forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+
+        let buttons = document.querySelectorAll('.sidebar-menu button');
+        buttons.forEach(b => b.classList.remove('active'));
+
+        let selected = document.getElementById(tabId);
+        if(selected) {
+            selected.classList.add('active');
+            selected.style.display = 'block';
+        }
+        if(btn) btn.classList.add('active');
+    }
+
+    function calcCash() {
+        let act = parseFloat(document.getElementById('cActual').value) || 0;
+        let sys = parseFloat(document.getElementById('cSystem').value) || 0;
+        let diff = act - sys;
+        let el = document.getElementById('cResult');
+        if (diff === 0) el.innerHTML = `<span>حالة الدرج النقدي:</span> <span class="badge badge-success">متطابق تماماً (0.00)</span>`;
+        else if (diff > 0) el.innerHTML = `<span>حالة الدرج النقدي:</span> <span class="badge badge-warning">زيادة بقيمة: +${diff.toFixed(2)} ج.م</span>`;
+        else el.innerHTML = `<span>حالة الدرج النقدي:</span> <span class="badge badge-danger">عجز بقيمة: ${diff.toFixed(2)} ج.م</span>`;
+    }
+
+    function saveCash() {
+        let date = document.getElementById('cDate').value;
+        let act = parseFloat(document.getElementById('cActual').value);
+        let sys = parseFloat(document.getElementById('cSystem').value);
+        if (isNaN(act) || isNaN(sys)) return alert('أدخل القيم النقدية الصحيحة');
+
+        cashDrawerTotal = act;
+        localStorage.setItem('store_cash_drawer_v7', cashDrawerTotal);
+
+        let diff = act - sys;
+        let st = diff === 0 ? 'متطابق' : (diff > 0 ? `زيادة (+${diff.toFixed(2)})` : `عجز (${diff.toFixed(2)})`);
+
+        db.push({ id: Date.now(), date: date, type: 'خزنة نقدية', wName: 'نقدي', opType: 'تقفيل درج', details: `الفعلي: ${act} ج.م | السيستم: ${sys} ج.م`, status: st, amt: act, diffVal: diff });
+        localStorage.setItem('store_records_v7', JSON.stringify(db));
+        alert('تم حفظ وتحديث الخزنة النقدية بنجاح');
+        renderDashboardTable();
+        generateAdvancedReport();
+    }
+
+    function addExpense() {
+        let date = document.getElementById('expDate').value;
+        let amt = parseFloat(document.getElementById('expAmt').value);
+        let desc = document.getElementById('expDesc').value.trim();
+
+        if(isNaN(amt) || amt <= 0) return alert('أدخل مبلغ مصروف صحيح');
+        if(!desc) return alert('أدخل بيان أو ملاحظة المصروف');
+
+        expensesList.push({ id: Date.now(), date, amt, desc });
+        localStorage.setItem('store_expenses_v7', JSON.stringify(expensesList));
+
+        db.push({ id: Date.now(), date, type: 'مصروف نقدي', wName: 'مصروفات', opType: 'مصروف', details: desc, status: 'منصرف', amt });
+        localStorage.setItem('store_records_v7', JSON.stringify(db));
+
+        document.getElementById('expAmt').value = '';
+        document.getElementById('expDesc').value = '';
+        renderExpensesUI();
+        renderDashboardTable();
+        generateAdvancedReport();
+        alert('تم خصم المصروف من الخزنة النقدية بنجاح');
+    }
+
+    function renderExpensesUI() {
+        let tbody = document.getElementById('expensesTableBody');
+        tbody.innerHTML = '';
+        let total = getTotalExpenses();
+        document.getElementById('totalExpensesDisplay').innerText = total.toLocaleString() + ' ج.م';
+
+        if(expensesList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">لا توجد مصاريف مسجلة حتى الآن</td></tr>';
+            return;
+        }
+
+        expensesList.slice().reverse().forEach(e => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${e.date}</td>
+                    <td style="color:var(--danger); font-weight:bold;">${e.amt.toLocaleString()} ج.م</td>
+                    <td>${e.desc}</td>
+                    <td><button type="button" class="btn btn-danger" onclick="delExpense(${e.id})">حذف</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function delExpense(id) {
+        if(confirm('هل تريد حذف هذا المصروف؟')) {
+            expensesList = expensesList.filter(e => e.id !== id);
+            localStorage.setItem('store_expenses_v7', JSON.stringify(expensesList));
+            renderExpensesUI();
+            renderDashboardTable();
+            generateAdvancedReport();
+        }
+    }
+
+    function addMsg() {
+        let w = document.getElementById('mWallet').value;
+        let t = document.getElementById('mType').value;
+        let a = parseFloat(document.getElementById('mAmt').value);
+        let d = document.getElementById('mDesc').value || 'بدون بيان';
+        if (isNaN(a) || a <= 0) return alert('أدخل المبلغ الصحيح');
+
+        tempMsgs.push({ id: Date.now(), wallet: w, type: t, amount: a, desc: d });
+        document.getElementById('mAmt').value = '';
+        document.getElementById('mDesc').value = '';
+        renderMsgs();
+        renderWalletSummary();
+    }
+
+    function renderMsgs() {
+        let currentW = document.getElementById('mWallet').value;
+        document.getElementById('selectedWalletText').innerText = currentW;
+        let tbody = document.getElementById('msgTable');
+        tbody.innerHTML = '';
+        
+        let filtered = tempMsgs.filter(m => m.wallet === currentW);
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">لا توجد حركات مدخلة لهذه الخزنة</td></tr>';
+            renderWalletSummary();
+            return;
+        }
+
+        filtered.forEach(m => {
+            let badgeColor = m.type === 'إيداع' ? 'badge-success' : 'badge-danger';
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${m.wallet}</b></td>
+                    <td><span class="badge ${badgeColor}">${m.type}</span></td>
+                    <td>${m.amount.toFixed(2)} ج.م</td>
+                    <td>${m.desc}</td>
+                    <td><button type="button" class="btn btn-danger" onclick="delMsg(${m.id})">حذف</button></td>
+                </tr>`;
+        });
+        renderWalletSummary();
+    }
+
+    function delMsg(id) {
+        tempMsgs = tempMsgs.filter(m => m.id !== id);
+        renderMsgs();
+    }
+
+    function renderWalletSummary() {
+        let currentW = document.getElementById('mWallet').value;
+        let selectedDate = document.getElementById('mDate').value || new Date().toISOString().split('T')[0];
+        let currentMonth = selectedDate.slice(0, 7);
+
+        let dayFilteredTemp = tempMsgs.filter(m => m.wallet === currentW);
+        let dayDep = dayFilteredTemp.filter(m => m.type === 'إيداع').reduce((s, m) => s + m.amount, 0);
+        let dayDraw = dayFilteredTemp.filter(m => m.type === 'سحب').reduce((s, m) => s + m.amount, 0);
+        let dayNet = dayDep - dayDraw;
+
+        document.getElementById('sumDayDep').innerText = dayDep.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumDayDraw').innerText = dayDraw.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumDayNet').innerText = dayNet.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumDayNet').style.color = dayNet >= 0 ? 'var(--success)' : 'var(--danger)';
+
+        let carry = getCarryOver(currentW, currentMonth);
+        let monthDep = getMonthlySum(currentW, 'إيداع', currentMonth);
+        let monthDraw = getMonthlySum(currentW, 'سحب', currentMonth);
+        let actualBal = (monthDep - monthDraw) + carry;
+
+        document.getElementById('sumCarryVal').innerText = carry.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumMonthDep').innerText = monthDep.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumMonthDraw').innerText = monthDraw.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumActualBal').innerText = actualBal.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ج.م';
+        document.getElementById('sumActualBal').style.color = actualBal >= 0 ? 'var(--warning)' : 'var(--danger)';
+    }
+
+    function saveMobile() {
+        let w = document.getElementById('mWallet').value;
+        let filtered = tempMsgs.filter(m => m.wallet === w);
+        if (filtered.length === 0) return alert('أدخل حركة واحدة على الأقل لهذه الخزنة');
+
+        let date = document.getElementById('mDate').value;
+
+        filtered.forEach(m => {
+            db.push({
+                id: Date.now() + Math.random(),
+                date: date,
+                type: 'حساب ' + m.wallet,
+                wName: w,
+                opType: m.type,
+                details: `${m.type} بقيمة ${m.amount.toFixed(2)} ج.م - البيان: ${m.desc}`,
+                status: 'تم بنجاح',
+                amt: m.amount
+            });
+        });
+
+        localStorage.setItem('store_records_v7', JSON.stringify(db));
+
+        tempMsgs = tempMsgs.filter(m => m.wallet !== w);
+        renderMsgs();
+        alert(`تم حفظ وتحديث تقفيل حساب ${w} بنجاح`);
+        renderDashboardTable();
+        generateAdvancedReport();
+    }
+
+    function importExcel(e) {
+        let file = e.target.files[0];
+        if(!file) return;
+        let reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                let data = new Uint8Array(evt.target.result);
+                let workbook = XLSX.read(data, {type: 'array'});
+                let firstSheetName = workbook.SheetNames[0];
+                let worksheet = workbook.Sheets[firstSheetName];
+                let json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                
+                clientsList = [];
+                for(let i = 1; i < json.length; i++) {
+                    let row = json[i];
+                    if(row && row.length > 0 && row[0]) {
+                        let name = row[0] || 'بدون اسم';
+                        let phone = String(row[1] || '').trim();
+                        let debt = parseFloat(row[2]) || 0;
+                        let paid = parseFloat(row[3]) || 0;
+                        let remaining = parseFloat(row[4]) || (debt - paid);
+
+                        clientsList.push({
+                            id: i,
+                            name: name,
+                            phone: phone,
+                            debt: debt,
+                            paid: paid,
+                            remaining: remaining,
+                            selected: false
+                        });
+                    }
+                }
+
+                localStorage.setItem('store_clients_v7', JSON.stringify(clientsList));
+                renderClientsTable();
+                alert(`تم استيراد ${clientsList.length} عميل بنجاح من شيت الإكسيل!`);
+            } catch(err) {
+                alert('حدث خطأ أثناء قراءة ملف الإكسيل. تأكد من تطابق الأعمدة.');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function renderClientsTable() {
+        let tbody = document.getElementById('clientsTableBody');
+        tbody.innerHTML = '';
+        document.getElementById('clientCountInfo').innerText = `عدد العملاء المستوردين: ${clientsList.length}`;
+
+        if(clientsList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">لا توجد بيانات عملاء مسجلة. قم برفع ملف إكسيل بالأعلى.</td></tr>';
+            return;
+        }
+
+        clientsList.forEach((c, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><input type="checkbox" ${c.selected ? 'checked' : ''} onchange="toggleClientSelect(${idx}, this.checked)"></td>
+                    <td><b>${c.name}</b></td>
+                    <td>${c.phone}</td>
+                    <td>${c.debt.toLocaleString()} ج.م</td>
+                    <td style="color:var(--success);">${c.paid.toLocaleString()} ج.م</td>
+                    <td style="color:var(--danger); font-weight:bold;">${c.remaining.toLocaleString()} ج.م</td>
+                    <td><button type="button" class="btn btn-whatsapp" style="padding:5px 10px; font-size:12px;" onclick="sendSingleWhatsApp(${idx})">💬 إرسال واتساب</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function toggleClientSelect(idx, status) {
+        clientsList[idx].selected = status;
+        localStorage.setItem('store_clients_v7', JSON.stringify(clientsList));
+    }
+
+    function toggleSelectAll(status) {
+        document.getElementById('masterCheckbox').checked = status;
+        clientsList.forEach(c => c.selected = status);
+        localStorage.setItem('store_clients_v7', JSON.stringify(clientsList));
+        renderClientsTable();
+    }
+
+    function sendSingleWhatsApp(idx) {
+        let c = clientsList[idx];
+        if(!c.phone) return alert('هذا العميل ليس لديه رقم موبايل مسجل!');
+        
+        let template = document.getElementById('waTemplate').value;
+        let msg = template
+            .replace('{name}', c.name)
+            .replace('{remaining}', c.remaining);
+
+        let cleanPhone = c.phone.replace(/\D/g, '');
+        if(cleanPhone.startsWith('0')) cleanPhone = '2' + cleanPhone;
+
+        let url = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+    }
+
+    let activeQueue = [];
+    let queueIndex = 0;
+
+    function startQueueWhatsApp() {
+        activeQueue = clientsList.filter(c => c.selected);
+        if(activeQueue.length === 0) return alert('الرجاء تحديد عميل واحد على الأقل للإرسال!');
+        
+        queueIndex = 0;
+        document.getElementById('whatsappQueueBox').style.display = 'block';
+        processQueueItem();
+    }
+
+    function processQueueItem() {
+        if(queueIndex >= activeQueue.length) {
+            document.getElementById('whatsappQueueBox').style.display = 'none';
+            alert('تم الانتهاء من إرسال الرسائل لجميع العملاء المحددين بنجاح!');
+            return;
+        }
+
+        let c = activeQueue[queueIndex];
+        let template = document.getElementById('waTemplate').value;
+        let msg = template
+            .replace('{name}', c.name)
+            .replace('{remaining}', c.remaining);
+
+        let cleanPhone = c.phone.replace(/\D/g, '');
+        if(cleanPhone.startsWith('0')) cleanPhone = '2' + cleanPhone;
+
+        document.getElementById('queueStatusText').innerText = `العميل الحالي (${queueIndex + 1} من ${activeQueue.length}): ${c.name} - ${c.phone}`;
+
+        let nextBtn = document.getElementById('nextQueueBtn');
+        if (queueIndex + 1 < activeQueue.length) {
+            let nextClient = activeQueue[queueIndex + 1];
+            nextBtn.innerHTML = `➡️ اضغط هنا للعميل التالي: ${nextClient.name}`;
+        } else {
+            nextBtn.innerHTML = `✅ هذا آخر عميل - إنهاء الإرسال`;
+        }
+
+        let url = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+    }
+
+    function nextQueueWhatsApp() {
+        queueIndex++;
+        processQueueItem();
+    }
+
+    function stopQueueWhatsApp() {
+        document.getElementById('whatsappQueueBox').style.display = 'none';
+        activeQueue = [];
+        queueIndex = 0;
+        alert('تم إيقاف قائمة الإرسال المتتابع.');
+    }
+
+    function toggleReportQueryType() {
+        let qType = document.getElementById('reportQueryType').value;
+        let gFrom = document.getElementById('groupFromDate');
+        let gTo = document.getElementById('groupToDate');
+        let gSingle = document.getElementById('groupSingleDate');
+
+        if(qType === 'singleDay') {
+            gFrom.style.display = 'none';
+            gTo.style.display = 'none';
+            gSingle.style.display = 'block';
+        } else {
+            gFrom.style.display = 'block';
+            gTo.style.display = 'block';
+            gSingle.style.display = 'none';
+        }
+    }
+
+    function adjustReportViewOptions() {
+        generateAdvancedReport();
+    }
+
+    function generateAdvancedReport() {
+        let qType = document.getElementById('reportQueryType').value;
+        let fromDate = document.getElementById('repFromDate').value;
+        let toDate = document.getElementById('repToDate').value;
+        let singleDate = document.getElementById('repSingleDate').value;
+        let filterW = document.getElementById('repWallet').value;
+        let viewMode = document.getElementById('repViewMode').value;
+        let tbody = document.getElementById('dbTable');
+        let tableWrapper = document.getElementById('tableWrapper');
+        tbody.innerHTML = '';
+
+        let filteredList = db.filter(r => {
+            if (!r.date) return false;
+            if (qType === 'singleDay') {
+                if (r.date !== singleDate) return false;
+            } else {
+                if (r.date < fromDate || r.date > toDate) return false;
+            }
+            if (filterW !== 'ALL' && !r.type.includes(filterW) && r.wName !== filterW) return false;
+            return true;
+        }).reverse();
+
+        let totalSurplus = 0;
+        let totalDeficit = 0;
+        let totalExpenses = 0;
+        let totalActualCashInDrawer = 0;
+        let digitalDep = 0;
+        let digitalDraw = 0;
+
+        filteredList.forEach(r => {
+            if (r.opType === 'تقفيل درج') {
+                let diff = r.diffVal !== undefined ? r.diffVal : 0;
+                if (diff > 0) totalSurplus += diff;
+                if (diff < 0) totalDeficit += Math.abs(diff);
+                totalActualCashInDrawer += (r.amt || 0);
+            }
+            if (r.opType === 'مصروف') {
+                totalExpenses += (r.amt || 0);
+            }
+            if (r.opType === 'إيداع') {
+                digitalDep += (r.amt || 0);
+            }
+            if (r.opType === 'سحب') {
+                digitalDraw += (r.amt || 0);
+            }
+        });
+
+        let netDiff = totalSurplus - totalDeficit;
+        let excelSummaryContainer = document.getElementById('excelSummaryContainer');
+        excelSummaryContainer.innerHTML = '';
+
+        if (filterW === 'خزنة نقدية') {
+            document.getElementById('reportTitleText').innerText = `📈 تحليل الخزنة النقدية (${qType === 'singleDay' ? singleDate : fromDate + ' إلى ' + toDate})`;
+            excelSummaryContainer.innerHTML = `
+                <table class="excel-summary-table">
+                    <tr>
+                        <th>إجمالي المبالغ الفعلية بالدرج</th>
+                        <th>إجمالي الزيادات (وفر)</th>
+                        <th>إجمالي العجوزات</th>
+                        <th>الصافي النهائي (الزيادة - العجز)</th>
+                    </tr>
+                    <tr>
+                        <td style="color:#1e3a8a;">${totalActualCashInDrawer.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--success);">${totalSurplus.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--danger);">${totalDeficit.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:${netDiff >= 0 ? 'var(--success)' : 'var(--danger)'};">${netDiff.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                    </tr>
+                </table>
+            `;
+        } else if (filterW === 'مصروف نقدي') {
+            document.getElementById('reportTitleText').innerText = `📈 تحليل المصاريف النقدية (${qType === 'singleDay' ? singleDate : fromDate + ' إلى ' + toDate})`;
+            excelSummaryContainer.innerHTML = `
+                <table class="excel-summary-table">
+                    <tr>
+                        <th>إجمالي المصاريف المنصرفة</th>
+                        <th>عدد عمليات الصرف المسجلة</th>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--danger);">${totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--primary);">${filteredList.length} عملية</td>
+                    </tr>
+                </table>
+            `;
+        } else if (filterW.includes('كاش') || filterW === 'انستا باي') {
+            let walletDep = filteredList.filter(r => r.opType === 'إيداع').reduce((s, r) => s + (r.amt || 0), 0);
+            let walletDraw = filteredList.filter(r => r.opType === 'سحب').reduce((s, m) => s + (m.amt || 0), 0);
+            let walletNet = walletDep - walletDraw;
+            document.getElementById('reportTitleText').innerText = `📈 تحليل الحساب (${filterW}) للفترة المحددة`;
+            excelSummaryContainer.innerHTML = `
+                <table class="excel-summary-table">
+                    <tr>
+                        <th>إجمالي الإيداعات</th>
+                        <th>إجمالي السحوبات</th>
+                        <th>صافي الحركة (إيداع - سحب)</th>
+                        <th>عدد الحركات</th>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--success);">${walletDep.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--danger);">${walletDraw.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:${walletNet >= 0 ? 'var(--success)' : 'var(--danger)'};">${walletNet.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--primary);">${filteredList.length} حركة</td>
+                    </tr>
+                </table>
+            `;
+        } else {
+            document.getElementById('reportTitleText').innerText = `📈 التقرير الشامل العام لكافة الأقسام والخزائن`;
+            excelSummaryContainer.innerHTML = `
+                <table class="excel-summary-table">
+                    <tr>
+                        <th>إجمالي الزيادات (وفر)</th>
+                        <th>إجمالي العجوزات</th>
+                        <th>الصافي النهائي</th>
+                        <th>إجمالي المصاريف</th>
+                        <th>إيداعات الخزائن</th>
+                        <th>سحوبات الخزائن</th>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--success);">${totalSurplus.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--danger);">${totalDeficit.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:${netDiff >= 0 ? 'var(--success)' : 'var(--danger)'};">${netDiff.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--danger);">${totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--success);">${digitalDep.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                        <td style="color:var(--danger);">${digitalDraw.toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</td>
+                    </tr>
+                </table>
+            `;
+        }
+
+        document.getElementById('analyticsReportBox').style.display = 'block';
+
+        if (viewMode === 'summary') {
+            tableWrapper.style.display = 'none';
+        } else {
+            tableWrapper.style.display = 'block';
+            if (filteredList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">لا توجد سجلات مطابقة لنطاق البحث والفلاتر المحددة</td></tr>';
+                return;
+            }
+
+            filteredList.forEach(r => {
+                let bClass = r.status.includes('عجز') || r.status.includes('فرق') ? 'badge-danger' : (r.status.includes('زيادة') ? 'badge-warning' : 'badge-success');
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${r.date}</td>
+                        <td><b>${r.type}</b></td>
+                        <td>${r.details}</td>
+                        <td><span class="badge ${bClass}">${r.status}</span></td>
+                        <td><button type="button" class="btn btn-danger" onclick="delDb(${r.id})">حذف</button></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    function generateDailyFollowUpReport() {
+        let qType = document.getElementById('reportQueryType').value;
+        let targetDate = qType === 'singleDay' ? document.getElementById('repSingleDate').value : new Date().toISOString().split('T')[0];
+        
+        let targetRecords = db.filter(r => r.date === targetDate);
+
+        if (targetRecords.length === 0) {
+            return alert(`لا توجد حركات أو رسائل مسجلة بتاريخ (${targetDate}) للمتابعة.`);
+        }
+
+        let dayDrawerCash = 0;
+        let dayDrawerStatus = "لم يُسجل";
+        let dayExpensesTotal = 0;
+        let dayDigitalDep = 0;
+        let dayDigitalDraw = 0;
+
+        targetRecords.forEach(r => {
+            if (r.opType === 'تقفيل درج') {
+                dayDrawerCash = r.amt || 0;
+                dayDrawerStatus = r.status;
+            }
+            if (r.opType === 'مصروف') {
+                dayExpensesTotal += (r.amt || 0);
+            }
+            if (r.opType === 'إيداع') {
+                dayDigitalDep += (r.amt || 0);
+            }
+            if (r.opType === 'سحب') {
+                dayDigitalDraw += (r.amt || 0);
+            }
+        });
+
+        let reportText = `📋 *تقرير الحركة اليومية الشامل والمفصل*\n`;
+        reportText += `📅 التاريخ: ${targetDate}\n`;
+        reportText += `==================================\n`;
+        reportText += `💵 *الخزنة النقدية (الدرج):* ${dayDrawerCash.toLocaleString()} ج.م (الحالة: ${dayDrawerStatus})\n`;
+        reportText += `💸 *إجمالي المصاريف المنصرفة:* ${dayExpensesTotal.toLocaleString()} ج.م\n`;
+        reportText += `📥 *إجمالي إيداعات الخزن الرقمية وانستا باي:* ${dayDigitalDep.toLocaleString()} ج.م\n`;
+        reportText += `📤 *إجمالي سحوبات الخزن الرقمية وانستا باي:* ${dayDigitalDraw.toLocaleString()} ج.م\n`;
+        reportText += `==================================\n`;
+        reportText += `📱 *سجل رسائل وحركات الخزن (رسالة رسالة):*\n\n`;
+        
+        let msgCounter = 1;
+        targetRecords.forEach(r => {
+            reportText += `🔹 *رسالة رقم (${msgCounter++})*\n`;
+            reportText += `• القسم / الخزنة: ${r.type}\n`;
+            reportText += `• نوع الحركة: ${r.opType || 'حركة'}\n`;
+            reportText += `• التفاصيل: ${r.details}\n`;
+            reportText += `• الحالة / المبلغ: ${r.status || r.amt + ' ج.م'}\n`;
+            reportText += `----------------------------------\n`;
+        });
+
+        reportText += `\nمع تحيات إدارة محلات عماد العجايبى لقطع غيار الموبايل فرع سوهاج`;
+
+        navigator.clipboard.writeText(reportText).then(() => {
+            alert(`تم نسخ تقرير يوم (${targetDate}) المفصلي الشامل بنجاح!`);
+            let url = `https://web.whatsapp.com/send?text=${encodeURIComponent(reportText)}`;
+            window.open(url, '_blank');
+        }).catch(() => {
+            alert(reportText);
+        });
+    }
+
+    function delDb(id) {
+        if (confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) {
+            db = db.filter(r => r.id !== id);
+            localStorage.setItem('store_records_v7', JSON.stringify(db));
+            renderDashboardTable();
+            generateAdvancedReport();
+            renderWalletSummary();
+        }
+    }
+
+    function exportFilteredExcel() {
+        if (db.length === 0) return alert('لا توجد بيانات لتصديرها');
+        let csv = "التاريخ,الخزنة,التفاصيل,الحالة,المبلغ\n";
+        db.forEach(r => { csv += `"${r.date}","${r.type}","${r.details}","${r.status}","${r.amt || 0}"\n`; });
+        let blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Store_Report_Export.csv';
+        a.click();
+    }
+
+    function exportJSONBackup() {
+        let backupData = {
+            records: db,
+            expenses: expensesList,
+            clients: clientsList,
+            users: systemUsers,
+            carryOver: carryOverStore,
+            boxes: actualBoxStore,
+            cashDrawer: cashDrawerTotal
+        };
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        let dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", `store_full_backup_${new Date().toISOString().split('T')[0]}.json`);
+        dlAnchorElem.click();
+    }
+
+    function importJSONBackup() {
+        let jsonText = prompt("قم بلصق كود النسخة الاحتياطية الكامل (JSON) هنا:");
+        if (!jsonText) return;
+        try {
+            let parsedData = JSON.parse(jsonText);
+            if (parsedData.records) {
+                db = parsedData.records;
+                expensesList = parsedData.expenses || [];
+                clientsList = parsedData.clients || [];
+                systemUsers = parsedData.users || systemUsers;
+                carryOverStore = parsedData.carryOver || {};
+                actualBoxStore = parsedData.boxes || {};
+                cashDrawerTotal = parsedData.cashDrawer || 0;
+
+                localStorage.setItem('store_records_v7', JSON.stringify(db));
+                localStorage.setItem('store_expenses_v7', JSON.stringify(expensesList));
+                localStorage.setItem('store_clients_v7', JSON.stringify(clientsList));
+                localStorage.setItem('store_users_v7', JSON.stringify(systemUsers));
+                localStorage.setItem('store_cash_drawer_v7', cashDrawerTotal);
+
+                initApp();
+                alert("تم استعادة النظام وقاعدة البيانات بالكامل بنجاح تام!");
+            } else {
+                alert("ملف الـ JSON غير متوافق مع بنية النظام.");
+            }
+        } catch (e) {
+            alert("خطأ في قراءة نص الـ JSON. تأكد من نسخه كاملاً.");
+        }
+    }
+</script>
+
+</body>
+</html>
