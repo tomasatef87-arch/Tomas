@@ -103,15 +103,14 @@
     </div>
 
 <script>
-    // الرابط الكامل والصحيح للـ Web App من نهاية /exec
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzChTXABZ_gCoa1mhWNS3SHiMsnmy_1lduY2alJ2VnE0aJhOPAxrvahnLntcDEGWxZQ/exec";
 
+    // دالة الإرسال عبر GET لضمان وصول البيانات دون حظر من المتصفح
     async function syncDataToSheet(sheetName, rowData) {
         try {
-            let response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'append', sheetName: sheetName, row: rowData })
-            });
+            let encodedData = encodeURIComponent(JSON.stringify(rowData));
+            let url = `${WEB_APP_URL}?sheetName=${sheetName}&data=${encodedData}`;
+            let response = await fetch(url);
             let result = await response.json();
             return result;
         } catch (error) {
@@ -168,7 +167,6 @@
         let diff = act - sys;
         let st = diff === 0 ? 'متطابق' : (diff > 0 ? `زيادة (+${diff.toFixed(2)})` : `عجز (${diff.toFixed(2)})`);
 
-        // إرسال البيانات المباشرة إلى Google Sheet
         syncDataToSheet('Records', [date, 'خزنة نقدية', 'نقدي', 'تقفيل درج', `الفعلي: ${act} | السيستم: ${sys}`, st, act]);
         alert('تم الحفظ وإرسال البيانات إلى Google Sheets بنجاح!');
     }
@@ -179,7 +177,6 @@
         let desc = document.getElementById('expDesc').value.trim();
         if(isNaN(amt) || amt <= 0 || !desc) return alert('أدخل بيانات المصروف بشكل صحيح');
 
-        // إرسال المصاريف إلى الشيت
         syncDataToSheet('Expenses', [date, amt, desc]);
         syncDataToSheet('Records', [date, 'مصروف نقدي', 'مصروفات', 'مصروف', desc, 'منصرف', amt]);
         alert('تم خصم المصروف وإرساله إلى Google Sheets بنجاح!');
